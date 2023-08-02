@@ -1,0 +1,26 @@
+/*
+ * Stop_Watch.c
+ *
+ *  Created on: Apr 12, 2023
+ *      Author: EL-Askary
+ */
+
+#include<avr/io.h>
+#include<avr/interrupt.h>
+#include<util/delay.h>
+
+
+
+unsigned char count = 0 ;
+ISR(TIMER1_COMPA_vect)
+{
+	count = 1 ;
+}
+
+unsigned char tick = 0 ;
+void TIMER_1 (unsigned char tick )
+{
+	TCNT1=0 ;
+
+
+}

@@ -1,0 +1,187 @@
+/*
+ * Stop_Watch.c
+ *
+ *  Created on: Apr 12, 2023
+ *      Author: EL-Askary
+ */
+
+#include<avr/io.h>
+#include<avr/interrupt.h>
+#include <util/delay.h>
+
+
+unsigned char tick = 0 ;
+unsigned char flag = 0 ;
+unsigned char SEC=0;
+unsigned char MIN=0;
+unsigned char HOUR=0;
+
+ISR(TIMER1_COMPA_vect)
+{
+	flag = 1 ;
+}
+
+void TIMER_1(unsigned int tick )
+{
+	TCNT1 = 0 ;
+	OCR1A = tick ;
+	TIMSK |= (1<<OCIE1A);
+	TCCR1A=(1<<FOC1A)|(1<<FOC1B);
+	TCCR1B = (1<<WGM12) | (1<<CS10) | (1<<CS12);
+}
+
+
+ISR(INT0_vect)
+{
+	SEC=0;
+	MIN=0;
+	HOUR=0;
+
+}
+void INT_0 (void)
+{
+	DDRD &= ~(1<<PD2);
+	PORTD |= (1<<PD2);
+
+	MCUCSR |= (1<<ISC01);
+	MCUCSR &= ~(1<<ISC00);
+	GICR |=(1<<INT0);
+}
+
+
+ISR(INT1_vect)
+{
+	TCCR1B &=~(1<<CS10);
+	TCCR1B &=~(1<<CS11);
+	TCCR1B &=~(1<<CS12);
+
+}
+void INT_1 (void)
+{
+	DDRD &= ~(1<<PD3);
+
+	MCUCR = (1<<ISC11 ) | (1<<ISC10 );
+	GICR |=(1<<INT1);
+}
+
+
+
+
+ISR(INT2_vect)
+{
+	TCCR1B |= (1<<CS10) | (1<<CS12);
+
+}
+
+void INT_2 (void)
+{
+	DDRB &= ~(1 << PB2);
+	PORTB |= (1 << PB2);
+
+	MCUCSR &= ~(1 << ISC2);
+	GICR |=(1<<INT2);
+}
+
+
+
+
+
+
+int main(void)
+{
+
+	DDRC |= 0x0F;
+	PORTC &= 0xF0;
+
+	DDRA  |= 0x3F;
+	PORTA &= 0x3F;
+
+
+	SREG  |= (1<<7);
+
+	TIMER_1(1000);
+	INT_0 ();
+	INT_1 ();
+	INT_2 ();
+
+
+
+	while(1)
+	{
+		if(flag == 1)
+		{
+
+			SEC++;
+			if(SEC==60)
+			{
+				MIN++;
+				SEC=0;
+			}
+			if(MIN==60)
+			{
+				HOUR++;
+				MIN=0;
+			}
+			if(HOUR==24)
+			{
+				HOUR=0;
+			}
+			flag =0;
+		}
+		else
+		{
+			// out the number of seconds
+			PORTA = (PORTA & 0xC0) | 0x01;
+			PORTC = (PORTC & 0xF0) | (SEC%10);
+
+			// make small delay to see the changes in the 7-segment
+			// 2Miliseconds delay will not effect the seconds count
+			_delay_ms(2);
+
+			PORTA = (PORTA & 0xC0) | 0x02;
+			PORTC = (PORTC & 0xF0) | (SEC/10);
+
+			_delay_ms(2);
+
+			// out the number of minutes
+			PORTA = (PORTA & 0xC0) | 0x04;
+			PORTC = (PORTC & 0xF0) | (MIN%10);
+
+			_delay_ms(2);
+
+			PORTA = (PORTA & 0xC0) | 0x08;
+			PORTC = (PORTC & 0xF0) | (MIN/10);
+
+			_delay_ms(2);
+
+			// out the number of hours
+			PORTA = (PORTA & 0xC0) | 0x10;
+			PORTC = (PORTC & 0xF0) | (HOUR%10);
+
+			_delay_ms(2);
+
+			PORTA = (PORTA & 0xC0) | 0x20;
+			PORTC = (PORTC & 0xF0) | (HOUR/10);
+
+			_delay_ms(2);
+		}
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
